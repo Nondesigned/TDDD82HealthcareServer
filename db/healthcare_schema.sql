@@ -1,3 +1,4 @@
+
 DROP TABLE IF EXISTS marking;
 
 DROP TABLE IF EXISTS groupmember;
@@ -10,13 +11,14 @@ DROP TABLE IF EXISTS usergroup;
 
 CREATE TABLE user(
 	NFC_id BIGINT,
+	name VARCHAR(100),
 	password VARCHAR(64),
 	salt VARCHAR(20),
-	phonenumber VARCHAR(10),
+	phonenumber INT,
 
 	CONSTRAINT pk_user
 		PRIMARY KEY(NFC_id)
-);
+)ENGINE = InnoDB;
 
 CREATE TABLE usergroup(
 	id INT AUTO_INCREMENT,
@@ -24,7 +26,7 @@ CREATE TABLE usergroup(
 
 	CONSTRAINT pk_group
 		PRIMARY KEY(id)
-);
+)ENGINE = InnoDB;
 
 CREATE TABLE token(
 	owner_id BIGINT,
@@ -36,7 +38,7 @@ CREATE TABLE token(
 
 	CONSTRAINT fk_token_user
 		FOREIGN KEY(owner_id) REFERENCES user(NFC_id) ON DELETE CASCADE
-);
+)ENGINE = InnoDB;
 
 CREATE TABLE groupmember(
 	user_id BIGINT,
@@ -50,16 +52,19 @@ CREATE TABLE groupmember(
 
 	CONSTRAINT fk_groupmember_usergroup
 		FOREIGN KEY(group_id) REFERENCES usergroup(id) ON DELETE CASCADE
-
-);
+)ENGINE = InnoDB;
 
 CREATE TABLE marking(
 	id INT AUTO_INCREMENT,
+	group_id INT,
 	type ENUM('wounded_guy', 'wounded_cat'),
 	creation_time DATETIME,
 	latitude DECIMAL(9,6),
 	longitude DECIMAL(9,6),
 
 	CONSTRAINT pk_marking
-		PRIMARY KEY(id)
-);
+		PRIMARY KEY(id),
+
+	CONSTRAINT fk_marking_usergroup
+		FOREIGN KEY(group_id) REFERENCES usergroup(id)
+)ENGINE = InnoDB;
