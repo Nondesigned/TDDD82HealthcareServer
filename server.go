@@ -11,6 +11,7 @@ func main() {
 	auth := r.Group("/")
 	// Handlers
 	r.GET("/", DefaultHandler)
+	r.POST("/login", LoginHandler)
 
 	auth.Use(AuthReq())
 	{
@@ -32,7 +33,18 @@ func AuthReq() gin.HandlerFunc {
 /*------------ Functions ------------*/
 
 //ValidateUser : Validates user
-func ValidateUser() {
+func ValidateUser(user Login) bool {
+	if user.Card == 123 {
+		return true
+	}
+	return false
+
+}
+
+//ValidateToken : Validates Token
+func ValidateToken(token Login) bool {
+
+	return false
 
 }
 
@@ -45,7 +57,17 @@ func DefaultHandler(c *gin.Context) {
 
 //LoginHandler  : Handler for the login
 func LoginHandler(c *gin.Context) {
+	var user Login
+	err := c.BindJSON(&user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 
+	if ValidateUser(user) == true {
+		c.JSON(http.StatusOK, gin.H{"status": "accepted"})
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{"status": "failed", "message": "Wrong cridentials"})
+	}
 }
 
 //CreateUserHandler : Handler for user creation
