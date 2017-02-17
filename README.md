@@ -21,3 +21,22 @@ the format is supposed to be:
 ```
 ##How to get a hashed password for testing
 To get a hashed password for your test user please use `/create` to get a bcrypt-hash of 'kaffekaka'
+
+##Tokens
+This sections goes through how the tokens are implemented.
+
+###Getting a token from the server
+The token is returned when a user is successfully logged-in. See the following example:
+```
+{
+	"status": "accepted",
+	"token": "INSERT TOKEN HERE"
+}
+```  
+
+###Sending tokens to the server
+The tokens are transferred to the server in a *Token-header* (the header should be called 'Token' and should contain the JWT in plain-text)
+
+###Information about tokens
+The token is signed with the private key from the server. The very same private key that is used to encrypt the TLS-stream. 
+This means that a verified certificate for TLS will give the client the possibility to verify the signing and key against a CA.

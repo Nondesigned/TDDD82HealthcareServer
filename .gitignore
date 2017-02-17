@@ -27,3 +27,5 @@ _testmain.go
 *.pem
 
 *.json
+
+.DS_Store

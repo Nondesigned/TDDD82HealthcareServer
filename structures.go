@@ -12,3 +12,8 @@ type Settings struct {
 	DBPass string `json:"DBPass"`
 	DBName string `json:"DBName"`
 }
+
+//Token struct
+type Token struct {
+	Token string `json:"token" binding:"required"`
+}

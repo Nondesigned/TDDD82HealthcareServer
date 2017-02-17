@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
+	"github.com/SermoDigital/jose/crypto"
+	"github.com/SermoDigital/jose/jws"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
@@ -20,9 +23,10 @@ func main() {
 	r.POST("/login", LoginHandler)
 	r.GET("/create", CreateUserHandler)
 
+	//Handlers that requires authentication
 	auth.Use(AuthReq())
 	{
-		//Format: auth.GET("/", Handler)
+		auth.GET("/contacts", GetContactsHandler)
 	}
 
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
@@ -31,9 +35,12 @@ func main() {
 //AuthReq : Middleware for authentication
 func AuthReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		//Make authentication
-		//If fails call: c.AbortWithStatus(401)
-		c.Next()
+		token := c.Request.Header.Get("Token")
+		if ValidateToken(token) {
+			c.Next()
+		} else {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
 	}
 }
 
@@ -82,8 +89,39 @@ func GetSettings() (string, string, string) {
 	return settings.DBUser, settings.DBPass, settings.DBName
 }
 
+//CreateToken : Creates Token
+func CreateToken() string {
+	//Create the Claims for the JWT
+	claims := jws.Claims{}
+	claims.SetExpiration(time.Now().AddDate(1, 0, 0))
+	claims.SetIssuer("Sjukvårdsgruppen")
+	claims.SetSubject("TDDD82Login")
+	claims.SetAudience("mobile")
+	claims.SetIssuedAt(time.Now())
+
+	//Sign it with the privatekey and return it
+	bytes, _ := ioutil.ReadFile("key.unencrypted.pem")
+	rsaPrivate, _ := crypto.ParseRSAPrivateKeyFromPEM(bytes)
+	jwt := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	b, _ := jwt.Serialize(rsaPrivate)
+	return string(b)
+
+}
+
 //ValidateToken : Validates Token
-func ValidateToken(token Login) bool {
+func ValidateToken(token string) bool {
+	j, err := jws.ParseJWT([]byte(token))
+	if err != nil {
+		return false
+	}
+	bytes, _ := ioutil.ReadFile("cert.pem")
+	publicKey, err := crypto.ParseRSAPublicKeyFromPEM(bytes)
+	if err != nil {
+		return false
+	}
+	if err = j.Validate(publicKey, crypto.SigningMethodRS256); err == nil {
+		return true
+	}
 	return false
 
 }
@@ -95,8 +133,14 @@ func DefaultHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "running"})
 }
 
+//GetContactsHandler : Return contacts for the logged-in user
+func GetContactsHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
 //LoginHandler  : Handler for the login
 func LoginHandler(c *gin.Context) {
+	//Bind JSON and check if cridentials matches
 	var user Login
 	err := c.BindJSON(&user)
 	if err != nil {
@@ -104,7 +148,7 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	if ValidateUser(user) == true {
-		c.JSON(http.StatusOK, gin.H{"status": "accepted"})
+		c.JSON(http.StatusOK, gin.H{"status": "accepted", "token": CreateToken()})
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "failed", "message": "Wrong cridentials"})
 	}
