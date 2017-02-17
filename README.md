@@ -12,7 +12,7 @@ go build
 ##Database cridentials
 To use the database you must configure a file called `config.json` and
 the format is supposed to be:
-```
+```json
 {
     "DBUser":"username",
     "DBPass":"password",
@@ -27,7 +27,7 @@ This sections goes through how the tokens are implemented.
 
 ###Getting a token from the server
 The token is returned when a user is successfully logged-in. See the following example:
-```
+```json
 {
 	"status": "accepted",
 	"token": "INSERT TOKEN HERE"
