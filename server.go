@@ -1,9 +1,15 @@
 package main
 
 import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
@@ -12,6 +18,7 @@ func main() {
 	// Handlers
 	r.GET("/", DefaultHandler)
 	r.POST("/login", LoginHandler)
+	r.GET("/create", CreateUserHandler)
 
 	auth.Use(AuthReq())
 	{
@@ -34,16 +41,49 @@ func AuthReq() gin.HandlerFunc {
 
 //ValidateUser : Validates user
 func ValidateUser(user Login) bool {
-	if user.Card == 123 {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@/"+DBName)
+	if err != nil {
+		return false
+	}
+	defer db.Close() //Close DB after function has returned a val
+
+	stmtOut, err := db.Prepare("SELECT password FROM user WHERE NFC_id = ?")
+	if err != nil {
+		panic(err.Error())
+	}
+	defer stmtOut.Close()
+
+	var password string
+	err = stmtOut.QueryRow(user.Card).Scan(&password)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password))
+	if err == nil {
 		return true
 	}
 	return false
 
 }
 
+//GetSettings : Returns the settings for the DB
+func GetSettings() (string, string, string) {
+	var settings = new(Settings)
+	raw, err := ioutil.ReadFile("config.json")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	err = json.Unmarshal(raw, &settings)
+	if err != nil {
+		return "", "", ""
+	}
+	return settings.DBUser, settings.DBPass, settings.DBName
+}
+
 //ValidateToken : Validates Token
 func ValidateToken(token Login) bool {
-
 	return false
 
 }
@@ -72,5 +112,9 @@ func LoginHandler(c *gin.Context) {
 
 //CreateUserHandler : Handler for user creation
 func CreateUserHandler(c *gin.Context) {
-
+	pass, err := bcrypt.GenerateFromPassword([]byte("kaffekaka"), 10)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	c.JSON(http.StatusOK, gin.H{"pass": string(pass)})
 }
