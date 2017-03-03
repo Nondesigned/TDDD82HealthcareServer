@@ -30,7 +30,6 @@ CREATE TABLE usergroup(
 
 CREATE TABLE token(
 	owner_id BIGINT,
-	valid_to DATETIME,
 	data VARCHAR(200),
 
 	CONSTRAINT pk_token
