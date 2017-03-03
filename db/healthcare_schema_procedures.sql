@@ -42,7 +42,7 @@ CREATE PROCEDURE add_user_to_group(IN user_nfc_id BIGINT, IN group_id INT)
 		INSERT INTO groupmember(user_id, group_id) VALUES(user_nfc_id, group_id);
 	END //
 
-CREATE PROCEDURE set_user_token(IN user_id BIGINT, IN valid_to DATETIME, IN data VARCHAR(100))
+CREATE PROCEDURE set_user_token(IN user_id BIGINT, IN valid_to DATETIME, IN data VARCHAR(200))
 	BEGIN
 		INSERT INTO token(owner_id, valid_to, data) VALUES(user_id, valid_to, data);
 	END //
