@@ -8,6 +8,8 @@ DROP PROCEDURE IF EXISTS add_user_to_group;
 
 DROP PROCEDURE IF EXISTS set_user_token;
 
+DROP PROCEDURE IF EXISTS get_user_token;
+
 DROP PROCEDURE IF EXISTS get_markings;
 
 
@@ -43,6 +45,11 @@ CREATE PROCEDURE add_user_to_group(IN user_nfc_id BIGINT, IN group_id INT)
 CREATE PROCEDURE set_user_token(IN user_id BIGINT, IN valid_to DATETIME, IN data VARCHAR(100))
 	BEGIN
 		INSERT INTO token(owner_id, valid_to, data) VALUES(user_id, valid_to, data);
+	END //
+
+CREATE PROCEDURE get_user_token(IN user_id BIGINT)
+	BEGIN
+		SELECT data FROM token WHERE owner_id = user_id LIMIT 1;
 	END //
 
 CREATE PROCEDURE get_markings(IN user_nfc_id BIGINT)
