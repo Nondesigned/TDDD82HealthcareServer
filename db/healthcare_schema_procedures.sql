@@ -44,7 +44,7 @@ CREATE PROCEDURE add_user_to_group(IN user_nfc_id BIGINT, IN group_id INT)
 
 CREATE PROCEDURE set_user_token(IN user_id BIGINT, IN data VARCHAR(200))
 	BEGIN
-		INSERT INTO token(owner_id, valid_to, data) VALUES(user_id, valid_to, data);
+		INSERT INTO token(owner_id, data) VALUES(user_id, data);
 	END //
 
 CREATE PROCEDURE get_user_token(IN user_id BIGINT)
