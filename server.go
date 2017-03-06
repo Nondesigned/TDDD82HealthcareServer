@@ -171,16 +171,6 @@ func CheckContactList(user Login) string {
 
 	fmt.Println(string(jsonData))
 	return string(jsonData)
-	//stmtOut, err := db.Prepare("SELECT group_id FROM groupmember WHERE user_id = ?")
-	//checkErr(err)
-	//defer stmtOut.Close()
-	//err = stmtOut.QueryRow(user.Card).Scan(&groupID)
-	//checkErr(err)
-
-	//stmtOut2, err := db.Prepare("SELECT name, phonenumber FROM user WHERE NFC_id IN (SELECT user_id FROM groupmember WHERE group_id = ?")
-	//checkErr(err)
-	//err = stmtOut2.QueryRow(groupID).Scan(&name, &phonenumber)
-	//checkErr(err)
 
 }
 
