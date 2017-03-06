@@ -1,10 +1,13 @@
 package main
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -12,8 +15,10 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	"golang.org/x/crypto/bcrypt"
 )
+
+//SaltSize sets length of salt
+const SaltSize = 16
 
 func main() {
 	r := gin.Default()
@@ -55,23 +60,22 @@ func ValidateUser(user Login) bool {
 	}
 	defer db.Close() //Close DB after function has returned a val
 
-	stmtOut, err := db.Prepare("SELECT password FROM user WHERE NFC_id = ?")
+	stmtOut, err := db.Prepare("SELECT password, salt FROM user WHERE NFC_id = ?")
 	if err != nil {
 		panic(err.Error())
 	}
 	defer stmtOut.Close()
-
+	var salt string
 	var password string
-	err = stmtOut.QueryRow(user.Card).Scan(&password)
-	if err != nil {
-		panic(err.Error())
-	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(password), []byte(user.Password))
-	if err == nil {
-		return true
-	}
-	return false
+	//Retrieves password and salt from the DB for chosen user
+	err = stmtOut.QueryRow(user.Card).Scan(&password, &salt)
+	checkErr(err)
+
+	//Hashes the login password with the users salt and converts to string
+	hashedPW := hex.EncodeToString(SHA3(user.Password + salt))
+
+	return hashedPW == password
 
 }
 
@@ -135,6 +139,12 @@ func DefaultHandler(c *gin.Context) {
 
 //GetContactsHandler : Return contacts for the logged-in user
 func GetContactsHandler(c *gin.Context) {
+	var user Login
+	err := c.BindJSON(&user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
@@ -156,9 +166,66 @@ func LoginHandler(c *gin.Context) {
 
 //CreateUserHandler : Handler for user creation
 func CreateUserHandler(c *gin.Context) {
-	pass, err := bcrypt.GenerateFromPassword([]byte("kaffekaka"), 10)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+
+	pass := saltedHash("kaffekaka")
+
+	c.JSON(http.StatusOK, gin.H{"pass": pass})
+}
+
+//Generates a salt and hashes it with the password
+func saltedHash(secret string) string {
+
+	var nfcid int
+	var usrname string
+	var hashpw string
+
+	//Temporary variables
+	nfcid = 123
+	usrname = "Markus Johansson"
+
+	phonenr := rand.Intn(99999999)
+
+	//Generates a random salt of length SaltSize
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, SaltSize)
+	for i := 0; i < SaltSize; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
 	}
-	c.JSON(http.StatusOK, gin.H{"pass": string(pass)})
+	salt := string(result)
+
+	//Hashes password + salt and converts to string
+	hashpw = hex.EncodeToString(SHA3(secret + salt)) // converts hex to string
+
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@/"+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	stmtOut, err := db.Prepare("INSERT INTO user (name, NFC_id, password, salt, phonenumber) VALUES (?, ? ,? ,? ,?)")
+	checkErr(err)
+	defer stmtOut.Close()
+
+	_, err = stmtOut.Exec(usrname, nfcid, hashpw, salt, phonenr)
+	checkErr(err)
+
+	return hashpw
+}
+
+//SHA3 Converts input to SHA3 hash
+func SHA3(str string) []byte {
+
+	bytes := []byte(str)
+
+	h := sha256.New()  // new sha256 object
+	h.Write(bytes)     // data is now converted to hex
+	code := h.Sum(nil) // code is now the hex sum
+
+	return code
+}
+
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
