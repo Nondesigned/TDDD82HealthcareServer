@@ -17,3 +17,9 @@ type Settings struct {
 type Token struct {
 	Token string `json:"token" binding:"required"`
 }
+
+//Contact list struct
+type Contacts struct {
+	PhoneNr []int    `json:"PhoneNr"`
+	Name    []string `json:"Name"`
+}

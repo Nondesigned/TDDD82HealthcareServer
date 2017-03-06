@@ -54,17 +54,15 @@ func AuthReq() gin.HandlerFunc {
 //ValidateUser : Validates user
 func ValidateUser(user Login) bool {
 	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@/"+DBName)
-	if err != nil {
-		return false
-	}
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@tcp(db-und.ida.liu.se:3307)/"+DBName)
+	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
 
 	stmtOut, err := db.Prepare("SELECT password, salt FROM user WHERE NFC_id = ?")
-	if err != nil {
-		panic(err.Error())
-	}
+	checkErr(err)
+
 	defer stmtOut.Close()
+
 	var salt string
 	var password string
 
@@ -115,14 +113,12 @@ func CreateToken() string {
 //ValidateToken : Validates Token
 func ValidateToken(token string) bool {
 	j, err := jws.ParseJWT([]byte(token))
-	if err != nil {
-		return false
-	}
+	checkErr(err)
+
 	bytes, _ := ioutil.ReadFile("cert.pem")
 	publicKey, err := crypto.ParseRSAPublicKeyFromPEM(bytes)
-	if err != nil {
-		return false
-	}
+	checkErr(err)
+
 	if err = j.Validate(publicKey, crypto.SigningMethodRS256); err == nil {
 		return true
 	}
@@ -130,46 +126,62 @@ func ValidateToken(token string) bool {
 
 }
 
-/*------------ Handlers -------------*/
+//CheckContactList : Checks which contacts user should access
+func CheckContactList(user Login) string {
 
-//DefaultHandler : Handler for root
-func DefaultHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"status": "running"})
-}
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@tcp(db-und.ida.liu.se:3306/"+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
 
-//GetContactsHandler : Return contacts for the logged-in user
-func GetContactsHandler(c *gin.Context) {
-	var user Login
-	err := c.BindJSON(&user)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+	//var groupID int
+
+	rows, err := db.Query("SELECT name, phonenumber FROM user")
+	checkErr(err)
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	checkErr(err)
+
+	count := len(columns)
+	tableData := make([]map[string]interface{}, 0)
+	fromDB := make([]interface{}, count)
+	toClient := make([]interface{}, count)
+	for rows.Next() {
+		for i := 0; i < count; i++ {
+			toClient[i] = &fromDB[i]
+		}
+		rows.Scan(toClient...)
+		entry := make(map[string]interface{})
+		for i, col := range columns {
+			var v interface{}
+			val := fromDB[i]
+			b, ok := val.([]byte)
+			if ok {
+				v = string(b)
+			} else {
+				v = val
+			}
+			entry[col] = v
+		}
+		tableData = append(tableData, entry)
 	}
+	jsonData, err := json.Marshal(tableData)
+	checkErr(err)
 
-	c.JSON(http.StatusOK, gin.H{"status": "ok"})
-}
+	fmt.Println(string(jsonData))
+	return string(jsonData)
+	//stmtOut, err := db.Prepare("SELECT group_id FROM groupmember WHERE user_id = ?")
+	//checkErr(err)
+	//defer stmtOut.Close()
+	//err = stmtOut.QueryRow(user.Card).Scan(&groupID)
+	//checkErr(err)
 
-//LoginHandler  : Handler for the login
-func LoginHandler(c *gin.Context) {
-	//Bind JSON and check if cridentials matches
-	var user Login
-	err := c.BindJSON(&user)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-	}
+	//stmtOut2, err := db.Prepare("SELECT name, phonenumber FROM user WHERE NFC_id IN (SELECT user_id FROM groupmember WHERE group_id = ?")
+	//checkErr(err)
+	//err = stmtOut2.QueryRow(groupID).Scan(&name, &phonenumber)
+	//checkErr(err)
 
-	if ValidateUser(user) == true {
-		c.JSON(http.StatusOK, gin.H{"status": "accepted", "token": CreateToken()})
-	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{"status": "failed", "message": "Wrong cridentials"})
-	}
-}
-
-//CreateUserHandler : Handler for user creation
-func CreateUserHandler(c *gin.Context) {
-
-	pass := saltedHash("kaffekaka")
-
-	c.JSON(http.StatusOK, gin.H{"pass": pass})
 }
 
 //Generates a salt and hashes it with the password
@@ -198,7 +210,7 @@ func saltedHash(secret string) string {
 	hashpw = hex.EncodeToString(SHA3(secret + salt)) // converts hex to string
 
 	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@/"+DBName)
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@tcp(db-und.ida.liu.se/"+DBName)
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
 
@@ -228,4 +240,46 @@ func checkErr(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+/*------------ Handlers -------------*/
+
+//DefaultHandler : Handler for root
+func DefaultHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "running"})
+}
+
+//GetContactsHandler : Return contacts for the logged-in user
+func GetContactsHandler(c *gin.Context) {
+	var user Login
+	err := c.BindJSON(&user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "contact list": CheckContactList(user)})
+}
+
+//LoginHandler  : Handler for the login
+func LoginHandler(c *gin.Context) {
+	//Bind JSON and check if cridentials matches
+	var user Login
+	err := c.BindJSON(&user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
+	if ValidateUser(user) == true {
+		c.JSON(http.StatusOK, gin.H{"status": "accepted", "token": CreateToken()})
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{"status": "failed", "message": "Wrong cridentials"})
+	}
+}
+
+//CreateUserHandler : Handler for user creation
+func CreateUserHandler(c *gin.Context) {
+
+	pass := saltedHash("kaffekaka")
+
+	c.JSON(http.StatusOK, gin.H{"pass": pass})
 }
