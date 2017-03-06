@@ -54,7 +54,7 @@ func AuthReq() gin.HandlerFunc {
 //ValidateUser : Validates user
 func ValidateUser(user Login) bool {
 	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@tcp(db-und.ida.liu.se:3307)/"+DBName)
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
 
@@ -130,7 +130,7 @@ func ValidateToken(token string) bool {
 func CheckContactList(user Login) string {
 
 	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@tcp(db-und.ida.liu.se:3306/"+DBName)
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
 
@@ -210,7 +210,7 @@ func saltedHash(secret string) string {
 	hashpw = hex.EncodeToString(SHA3(secret + salt)) // converts hex to string
 
 	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+"@tcp(db-und.ida.liu.se/"+DBName)
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
 
