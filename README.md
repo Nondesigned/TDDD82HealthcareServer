@@ -16,7 +16,7 @@ the format is supposed to be:
 {
     "DBUser":"username",
     "DBPass":"password",
-    "DBName":"itkand_2017_3_1 or itkand_2017_3_2"
+    "DBName":"@tcp(db-und.ida.liu.se:3306/itkand_2017_3_1 or @tcp(db-und.ida.liu.se:3306/itkand_2017_3_2"
 }
 ```
 ##How to get a hashed password for testing
