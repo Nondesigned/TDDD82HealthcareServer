@@ -134,28 +134,27 @@ func CheckContactList(user Login) string {
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
 
-	//var groupID int
-
 	rows, err := db.Query("SELECT name, phonenumber FROM user")
 	checkErr(err)
 	defer rows.Close()
 
+	//Retrieves the tuples (Name, Phonenumber) and creates a JSON object with those N number of tuples where N is the number of rows in the mysql user table
 	columns, err := rows.Columns()
 	checkErr(err)
 
 	count := len(columns)
 	tableData := make([]map[string]interface{}, 0)
-	fromDB := make([]interface{}, count)
-	toClient := make([]interface{}, count)
+	values := make([]interface{}, count)
+	valuePointers := make([]interface{}, count)
 	for rows.Next() {
 		for i := 0; i < count; i++ {
-			toClient[i] = &fromDB[i]
+			valuePointers[i] = &values[i]
 		}
-		rows.Scan(toClient...)
+		rows.Scan(valuePointers...)
 		entry := make(map[string]interface{})
 		for i, col := range columns {
 			var v interface{}
-			val := fromDB[i]
+			val := values[i]
 			b, ok := val.([]byte)
 			if ok {
 				v = string(b)
