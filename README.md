@@ -30,10 +30,10 @@ Example of input for /login:
 }
 ```
 ##How to create a user
-Currently a default user is created when performing a GET on someaddress:port/create. This should 
+Make a POST to someaddress:port/create with a JSON object according to the format in `structures.go` 
 
 ##Try login
-After creating a user you can attempt to login with NFC-id:123, password:kaffekaka and fcmtoken:randomstring by performing a POST on someaddress:port/login
+After creating a user you can attempt to login by performing a POST on someaddress:port/login with information matching the ones of an added user. If succesful the token will be returned as a string.
 
 ##Retrieve contactlist
 By performing a GET on someaddress:port/contacs with a header containing the token (see documentation below for sending a token to the server).
