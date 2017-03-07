@@ -4,6 +4,7 @@ package main
 type Login struct {
 	Card     int    `json:"card" binding:"required"`
 	Password string `json:"password" binding:"required"`
+	FCMToken string `json:"fcmtoken" binding:"required"`
 }
 
 //Settings struct
@@ -18,8 +19,10 @@ type Token struct {
 	Token string `json:"token" binding:"required"`
 }
 
-//Contact list struct
-type Contacts struct {
-	PhoneNr []int    `json:"PhoneNr"`
-	Name    []string `json:"Name"`
+//Create struct
+type Create struct {
+	Card        int    `json:"card" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Password    string `json:"password" binding:"required"`
+	Phonenumber int    `json:"phonenr" binding:"required"`
 }
