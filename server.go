@@ -140,22 +140,23 @@ func CheckContactList(user Login) string {
 	checkErr(err)
 	defer rows.Close()
 
+	//Retrieves the tuples (Name, Phonenumber) and creates a JSON object with those N number of tuples where N is the number of rows in the mysql user table
 	columns, err := rows.Columns()
 	checkErr(err)
 
 	count := len(columns)
 	tableData := make([]map[string]interface{}, 0)
-	fromDB := make([]interface{}, count)
-	toClient := make([]interface{}, count)
+	values := make([]interface{}, count)
+	valuePointers := make([]interface{}, count)
 	for rows.Next() {
 		for i := 0; i < count; i++ {
-			toClient[i] = &fromDB[i]
+			valuePointers[i] = &values[i]
 		}
-		rows.Scan(toClient...)
+		rows.Scan(valuePointers...)
 		entry := make(map[string]interface{})
 		for i, col := range columns {
 			var v interface{}
-			val := fromDB[i]
+			val := values[i]
 			b, ok := val.([]byte)
 			if ok {
 				v = string(b)
@@ -169,18 +170,7 @@ func CheckContactList(user Login) string {
 	jsonData, err := json.Marshal(tableData)
 	checkErr(err)
 
-	fmt.Println(string(jsonData))
 	return string(jsonData)
-	//stmtOut, err := db.Prepare("SELECT group_id FROM groupmember WHERE user_id = ?")
-	//checkErr(err)
-	//defer stmtOut.Close()
-	//err = stmtOut.QueryRow(user.Card).Scan(&groupID)
-	//checkErr(err)
-
-	//stmtOut2, err := db.Prepare("SELECT name, phonenumber FROM user WHERE NFC_id IN (SELECT user_id FROM groupmember WHERE group_id = ?")
-	//checkErr(err)
-	//err = stmtOut2.QueryRow(groupID).Scan(&name, &phonenumber)
-	//checkErr(err)
 
 }
 
