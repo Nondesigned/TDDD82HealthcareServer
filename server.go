@@ -131,7 +131,7 @@ func ValidateToken(token string) bool {
 }
 
 //CheckContactList : Checks which contacts user should access
-func CheckContactList(user Login) string {
+func CheckContactList() string {
 
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
@@ -282,13 +282,9 @@ func DefaultHandler(c *gin.Context) {
 
 //GetContactsHandler : Return contacts for the logged-in user
 func GetContactsHandler(c *gin.Context) {
-	var user Login
-	err := c.BindJSON(&user)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-	}
 
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "contact list": CheckContactList(user)})
+	c.JSON(http.StatusOK, gin.H{"status": "ok", "contact list": CheckContactList()})
+
 }
 
 //LoginHandler  : Handler for the login
