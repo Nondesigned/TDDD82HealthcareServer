@@ -16,11 +16,27 @@ the format is supposed to be:
 {
     "DBUser":"username",
     "DBPass":"password",
-    "DBName":"itkand_2017_3_1 or itkand_2017_3_2"
+    "DBName":"@tcp(db-und.ida.liu.se:3306/itkand_2017_3_1 or @tcp(db-und.ida.liu.se:3306/itkand_2017_3_2"
 }
 ```
-##How to get a hashed password for testing
-To get a hashed password for your test user please use `/create` to get a bcrypt-hash of 'kaffekaka'
+##Format of JSON objects
+To check the format of the JSON object you send to the server through /login and /contacts check the class `structures.go`
+Example of input for /login:
+```json
+{
+	"card":123,
+	"password":"kaffekaka",
+	"fcmtoken":"rndtokenstring"
+}
+```
+##How to create a user
+Make a POST to someaddress:port/create with a JSON object according to the format in `structures.go` 
+
+##Try login
+After creating a user you can attempt to login by performing a POST on someaddress:port/login with information matching the ones of an added user. If succesful the token will be returned as a string.
+
+##Retrieve contactlist
+By performing a GET on someaddress:port/contacs with a header containing the token (see documentation below for sending a token to the server).
 
 ##Tokens
 This sections goes through how the tokens are implemented.
