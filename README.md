@@ -20,23 +20,23 @@ the format is supposed to be:
 }
 ```
 ##Format of JSON objects
-To check the format of the JSON object you send to the server through /login, /create and /contacts check the class struct.go
-
-Example:
+To check the format of the JSON object you send to the server through /login and /contacts check the class `structures.go`
+Example of input for /login:
+```json
 {
 	"card":123,
 	"password":"kaffekaka",
 	"fcmtoken":"rndtokenstring"
 }
-
+```
 ##How to create a user
-Currently a default user is created when performing a GET on someaddress:port/create
+Currently a default user is created when performing a GET on someaddress:port/create. This should 
 
 ##Try login
 After creating a user you can attempt to login with NFC-id:123, password:kaffekaka and fcmtoken:randomstring by performing a POST on someaddress:port/login
 
 ##Retrieve contactlist
-By performing a GET on someaddress:port/contacs with a header set to Token:token (token is retrieved from a succesful login) you retrieve a list of tuples(name, phonenr) if any are implemented in your database.
+By performing a GET on someaddress:port/contacs with a header containing the token (see documentation below for sending a token to the server).
 
 ##Tokens
 This sections goes through how the tokens are implemented.
