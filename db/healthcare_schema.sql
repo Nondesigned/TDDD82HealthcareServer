@@ -10,14 +10,14 @@ DROP TABLE IF EXISTS user;
 DROP TABLE IF EXISTS usergroup;
 
 CREATE TABLE user(
+	phonenumber INT,
 	NFC_id BIGINT,
 	name VARCHAR(100),
 	password VARCHAR(64),
 	salt VARCHAR(20),
-	phonenumber INT,
 
 	CONSTRAINT pk_user
-		PRIMARY KEY(NFC_id)
+		PRIMARY KEY(phonenumber)
 )ENGINE = InnoDB;
 
 CREATE TABLE usergroup(
@@ -29,25 +29,25 @@ CREATE TABLE usergroup(
 )ENGINE = InnoDB;
 
 CREATE TABLE token(
-	owner_id BIGINT,
+	owner_number INT,
 	data VARCHAR(200),
 
 	CONSTRAINT pk_token
-		PRIMARY KEY(owner_id),
+		PRIMARY KEY(owner_number),
 
 	CONSTRAINT fk_token_user
-		FOREIGN KEY(owner_id) REFERENCES user(NFC_id) ON DELETE CASCADE
+		FOREIGN KEY(owner_number) REFERENCES user(phonenumber) ON DELETE CASCADE
 )ENGINE = InnoDB;
 
 CREATE TABLE groupmember(
-	user_id BIGINT,
+	user_number INT,
 	group_id INT,
 
 	CONSTRAINT pk_groupmember
-		PRIMARY KEY(user_id, group_id),
+		PRIMARY KEY(user_number, group_id),
 
 	CONSTRAINT fk_groupmember_user
-		FOREIGN KEY(user_id) REFERENCES user(NFC_id) ON DELETE CASCADE,
+		FOREIGN KEY(user_number) REFERENCES user(phonenumber) ON DELETE CASCADE,
 
 	CONSTRAINT fk_groupmember_usergroup
 		FOREIGN KEY(group_id) REFERENCES usergroup(id) ON DELETE CASCADE
