@@ -19,11 +19,21 @@ the format is supposed to be:
     "DBName":"@tcp(db-und.ida.liu.se:3306/itkand_2017_3_1 or @tcp(db-und.ida.liu.se:3306/itkand_2017_3_2"
 }
 ```
+##Format of JSON objects
+To check the format of the JSON object you send to the server through /login, /create and /contacts check the class struct.go
+
+Example:
+{
+	"card":123,
+	"password":"kaffekaka",
+	"fcmtoken":"rndtokenstring"
+}
+
 ##How to create a user
 Currently a default user is created when performing a GET on someaddress:port/create
 
 ##Try login
-After creating a user you can attempt to login with NFC-id:123 and password:kaffekaka by performing a POST on someaddress:port/login
+After creating a user you can attempt to login with NFC-id:123, password:kaffekaka and fcmtoken:randomstring by performing a POST on someaddress:port/login
 
 ##Retrieve contactlist
 By performing a GET on someaddress:port/contacs with a header set to Token:token (token is retrieved from a succesful login) you retrieve a list of tuples(name, phonenr) if any are implemented in your database.
