@@ -19,8 +19,14 @@ the format is supposed to be:
     "DBName":"@tcp(db-und.ida.liu.se:3306/itkand_2017_3_1 or @tcp(db-und.ida.liu.se:3306/itkand_2017_3_2"
 }
 ```
-##How to get a hashed password for testing
-To get a hashed password for your test user please use `/create` to get a bcrypt-hash of 'kaffekaka'
+##How to create a user
+Currently a default user is created when performing a GET on someaddress:port/create
+
+##Try login
+After creating a user you can attempt to login with NFC-id:123 and password:kaffekaka by performing a POST on someaddress:port/login
+
+##Retrieve contactlist
+By performing a GET on someaddress:port/contacs with a header set to Token:token (token is retrieved from a succesful login) you retrieve a list of tuples(name, phonenr) if any are implemented in your database.
 
 ##Tokens
 This sections goes through how the tokens are implemented.
