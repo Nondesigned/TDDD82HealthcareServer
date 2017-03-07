@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/SermoDigital/jose/crypto"
@@ -26,7 +27,7 @@ func main() {
 	// Handlers
 	r.GET("/", DefaultHandler)
 	r.POST("/login", LoginHandler)
-	r.GET("/create", CreateUserHandler)
+	r.POST("/create", CreateUserHandler)
 
 	//Handlers that requires authentication
 	auth.Use(AuthReq())
@@ -92,12 +93,15 @@ func GetSettings() (string, string, string) {
 }
 
 //CreateToken : Creates Token
-func CreateToken() string {
+func CreateToken(user Login) string {
+	//Retrieves phonenr and converts it to string
+	phonenr := GetPhoneNumber(user.Card)
+	phonestring := strconv.Itoa(phonenr)
 	//Create the Claims for the JWT
 	claims := jws.Claims{}
 	claims.SetExpiration(time.Now().AddDate(1, 0, 0))
 	claims.SetIssuer("Sjukvårdsgruppen")
-	claims.SetSubject("TDDD82Login")
+	claims.SetSubject(phonestring)
 	claims.SetAudience("mobile")
 	claims.SetIssuedAt(time.Now())
 
@@ -168,35 +172,15 @@ func CheckContactList(user Login) string {
 	jsonData, err := json.Marshal(tableData)
 	checkErr(err)
 
-	fmt.Println(string(jsonData))
 	return string(jsonData)
 
 }
 
-//Generates a salt and hashes it with the password
-func saltedHash(secret string) string {
+//CreateUser creates a user from the input JSON object
+func CreateUser(user Create) {
 
-	var nfcid int
-	var usrname string
-	var hashpw string
-
-	//Temporary variables
-	nfcid = 123
-	usrname = "Markus Johansson"
-
-	phonenr := rand.Intn(99999999)
-
-	//Generates a random salt of length SaltSize
-	rand.Seed(time.Now().UTC().UnixNano())
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-	result := make([]byte, SaltSize)
-	for i := 0; i < SaltSize; i++ {
-		result[i] = chars[rand.Intn(len(chars))]
-	}
-	salt := string(result)
-
-	//Hashes password + salt and converts to string
-	hashpw = hex.EncodeToString(SHA3(secret + salt)) // converts hex to string
+	salt := Salt()
+	hashedpw := Hash(user.Password, salt)
 
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
@@ -207,10 +191,68 @@ func saltedHash(secret string) string {
 	checkErr(err)
 	defer stmtOut.Close()
 
-	_, err = stmtOut.Exec(usrname, nfcid, hashpw, salt, phonenr)
+	_, err = stmtOut.Exec(user.Name, user.Card, hashedpw, salt, user.Phonenumber)
 	checkErr(err)
+}
+
+//Salt generates a salt and hashes it with the password
+func Salt() string {
+	//Generates a random salt of length SaltSize
+	rand.Seed(time.Now().UTC().UnixNano())
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	result := make([]byte, SaltSize)
+	for i := 0; i < SaltSize; i++ {
+		result[i] = chars[rand.Intn(len(chars))]
+	}
+	return string(result)
+}
+
+//Hash password and salt together and returns the result as a string
+func Hash(secret string, salt string) string {
+	//Hashes password + salt and converts to string
+	hashpw := hex.EncodeToString(SHA3(secret + salt)) // converts hex to string
 
 	return hashpw
+}
+
+//InsertFCMToken insert unique fcmtoken for each client into the mysql database
+func InsertFCMToken(user Login) bool {
+
+	phonenr := GetPhoneNumber(user.Card)
+
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	stmtOut, err := db.Prepare("REPLACE INTO token (owner_number, data) VALUES (?, ?)")
+	checkErr(err)
+	defer stmtOut.Close()
+
+	_, err = stmtOut.Exec(phonenr, user.FCMToken)
+	if err != nil {
+		return false
+	}
+	return true
+
+}
+
+//GetPhoneNumber retrieves phonenumber for input NFC id
+func GetPhoneNumber(card int) int {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	stmtOut, err := db.Prepare("SELECT phonenumber FROM user WHERE NFC_id = ?")
+	checkErr(err)
+	defer stmtOut.Close()
+
+	var phonenr int
+
+	err = stmtOut.QueryRow(card).Scan(&phonenr)
+
+	return phonenr
 }
 
 //SHA3 Converts input to SHA3 hash
@@ -259,7 +301,12 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	if ValidateUser(user) == true {
-		c.JSON(http.StatusOK, gin.H{"status": "accepted", "token": CreateToken()})
+		if InsertFCMToken(user) == true {
+			c.JSON(http.StatusOK, gin.H{"status": "accepted", "token": CreateToken(user)})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{"status": "failed", "message": "Insert fcmtoken failed"})
+		}
+
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{"status": "failed", "message": "Wrong cridentials"})
 	}
@@ -267,8 +314,12 @@ func LoginHandler(c *gin.Context) {
 
 //CreateUserHandler : Handler for user creation
 func CreateUserHandler(c *gin.Context) {
+	var user Create
+	err := c.BindJSON(&user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	CreateUser(user)
 
-	pass := saltedHash("kaffekaka")
-
-	c.JSON(http.StatusOK, gin.H{"pass": pass})
+	c.JSON(http.StatusOK, gin.H{"status": "accepted"})
 }
