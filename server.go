@@ -119,7 +119,9 @@ func CreateToken(user Login) string {
 //ValidateToken : Validates Token
 func ValidateToken(token string) bool {
 	j, err := jws.ParseJWT([]byte(token))
-	checkErr(err)
+	if err != nil {
+		return false
+	}
 
 	bytes, _ := ioutil.ReadFile("cert.pem")
 	publicKey, err := crypto.ParseRSAPublicKeyFromPEM(bytes)
