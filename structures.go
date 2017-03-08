@@ -24,5 +24,5 @@ type Create struct {
 	Card        int    `json:"card" binding:"required"`
 	Name        string `json:"name" binding:"required"`
 	Password    string `json:"password" binding:"required"`
-	Phonenumber int    `json:"phonenr" binding:"required"`
+	Phonenumber int    `json:"phonenumber" binding:"required"`
 }
