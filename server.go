@@ -69,7 +69,9 @@ func ValidateUser(user Login) bool {
 
 	//Retrieves password and salt from the DB for chosen user
 	err = stmtOut.QueryRow(user.Card).Scan(&password, &salt)
-	checkErr(err)
+	if err != nil {
+		return false
+	}
 
 	//Hashes the login password with the users salt and converts to string
 	hashedPW := hex.EncodeToString(SHA3(user.Password + salt))
