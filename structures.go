@@ -34,6 +34,6 @@ type Pin struct {
 }
 
 type Contacts struct {
-	Name string 		`json:"name`
-	Phonenumber string	`json:"phonenumber"` 
+	Name        string `json:"name"`
+	Phonenumber string `json:"phonenumber"`
 }
