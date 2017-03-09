@@ -181,7 +181,7 @@ func CheckContactList() string {
 }
 
 //CreateUser creates a user from the input JSON object
-func CreateUser(user Create) {
+func CreateUser(user Create) bool {
 
 	salt := Salt()
 	hashedpw := Hash(user.Password, salt)
@@ -196,7 +196,10 @@ func CreateUser(user Create) {
 	defer stmtOut.Close()
 
 	_, err = stmtOut.Exec(user.Name, user.Card, hashedpw, salt, user.Phonenumber)
-	checkErr(err)
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 //Salt generates a salt and hashes it with the password
@@ -319,7 +322,11 @@ func CreateUserHandler(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
-	CreateUser(user)
 
-	c.JSON(http.StatusOK, gin.H{"status": "accepted"})
+	if CreateUser(user) {
+		c.JSON(http.StatusOK, gin.H{"status": "accepted"})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "failed", "message": "Duplicate entry of unique ID"})
+	}
+
 }
