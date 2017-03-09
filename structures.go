@@ -26,3 +26,9 @@ type Create struct {
 	Password    string `json:"password" binding:"required"`
 	Phonenumber int    `json:"phonenumber" binding:"required"`
 }
+
+type Pin struct {
+	Type string `json:"type"`
+	Long string `json:"long"`
+	Lat  string `json:"lat"`
+}

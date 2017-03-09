@@ -33,6 +33,7 @@ func main() {
 	auth.Use(AuthReq())
 	{
 		auth.GET("/contacts", GetContactsHandler)
+		auth.GET("/pins", GetPinsHandler)
 	}
 
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
@@ -78,6 +79,22 @@ func ValidateUser(user Login) bool {
 
 	return hashedPW == password
 
+}
+
+//GetNumber : Returns phonenr from token
+func GetNumber(token string) int {
+	j, err := jws.ParseJWT([]byte(token))
+	if err != nil {
+		return 0
+	}
+
+	checkErr(err)
+
+	number, err := strconv.Atoi((j.Claims().Get("sub").(string)))
+	if err != nil {
+		return 0
+	}
+	return number
 }
 
 //GetSettings : Returns the settings for the DB
@@ -334,5 +351,31 @@ func CreateUserHandler(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "failed", "message": "Duplicate entry of unique ID"})
 	}
+}
 
+func GetPinsHandler(c *gin.Context) {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+	token := c.Request.Header.Get("Token")
+
+	number := GetNumber(token)
+	rows, err := db.Query("SELECT healthcare.marking.type, healthcare.marking.longitude, healthcare.marking.latitude FROM healthcare.marking, healthcare.groupmember, healthcare.user where marking.group_id = groupmember.group_id and groupmember.user_number = user.phonenumber and user.phonenumber = ?;", number)
+	defer rows.Close()
+
+	var pin []*Pin
+	for rows.Next() {
+		p := new(Pin)
+		if err := rows.Scan(&p.Type, &p.Long, &p.Lat); err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		pin = append(pin, p)
+	}
+	if err := rows.Err(); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	c.JSON(http.StatusAccepted, pin)
 }
