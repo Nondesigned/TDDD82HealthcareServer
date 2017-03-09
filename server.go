@@ -114,7 +114,7 @@ func GetSettings() (string, string, string) {
 //CreateToken : Creates Token
 func CreateToken(user Login) string {
 	//Retrieves phonenr and converts it to string
-	phonenr := GetPhoneNumber(user.Card)
+	phonenr := GetPhoneNumberForToken(user.Card)
 	phonestring := strconv.Itoa(phonenr)
 	//Create the Claims for the JWT
 	claims := jws.Claims{}
@@ -148,58 +148,6 @@ func ValidateToken(token string) bool {
 		return true
 	}
 	return false
-
-}
-
-//CheckContactList : Checks which contacts user should access
-func CheckContactList() string {
-
-	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
-	checkErr(err)
-	defer db.Close() //Close DB after function has returned a val
-
-	stmtOut, err := db.Prepare("SELECT DISTINCT name, phonenumber FROM user INNER JOIN groupmember ON phonenumber = user_number WHERE group_id IN (SELECT group_id FROM groupmember WHERE user_number = ?) AND NOT phonenumber = ?")
-	checkErr(err)
-	defer stmtOut.Close()
-
-	var phonenr int
-	phonenr = 111
-
-	rows, err := stmtOut.Query(phonenr, phonenr)
-	checkErr(err)
-
-	//Retrieves the tuples (Name, Phonenumber) and creates a JSON object with those N number of tuples where N is the number of rows in the mysql user table
-	columns, err := rows.Columns()
-	checkErr(err)
-
-	count := len(columns)
-	tableData := make([]map[string]interface{}, 0)
-	values := make([]interface{}, count)
-	valuePointers := make([]interface{}, count)
-	for rows.Next() {
-		for i := 0; i < count; i++ {
-			valuePointers[i] = &values[i]
-		}
-		rows.Scan(valuePointers...)
-		entry := make(map[string]interface{})
-		for i, col := range columns {
-			var v interface{}
-			val := values[i]
-			b, ok := val.([]byte)
-			if ok {
-				v = string(b)
-			} else {
-				v = val
-			}
-			entry[col] = v
-		}
-		tableData = append(tableData, entry)
-	}
-	jsonData, err := json.Marshal(tableData)
-	checkErr(err)
-
-	return string(jsonData)
 
 }
 
@@ -245,10 +193,10 @@ func Hash(secret string, salt string) string {
 	return hashpw
 }
 
-//InsertFCMToken insert unique fcmtoken for each client into the mysql database
+//InsertFCMToken insert unique fcmtoken for each client into the mysql database on login
 func InsertFCMToken(user Login) bool {
 
-	phonenr := GetPhoneNumber(user.Card)
+	phonenr := GetPhoneNumberForToken(user.Card)
 
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
@@ -268,7 +216,7 @@ func InsertFCMToken(user Login) bool {
 }
 
 //GetPhoneNumber retrieves phonenumber for input NFC id
-func GetPhoneNumber(card int) int {
+func GetPhoneNumberForToken(card int) int {
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
@@ -312,8 +260,34 @@ func DefaultHandler(c *gin.Context) {
 
 //GetContactsHandler : Return contacts for the logged-in user
 func GetContactsHandler(c *gin.Context) {
+	token := c.Request.Header.Get("Token")
 
-	c.JSON(http.StatusOK, gin.H{"status": "ok", "contact list": CheckContactList()})
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	stmtOut, err := db.Prepare("SELECT DISTINCT name, phonenumber FROM user INNER JOIN groupmember ON phonenumber = user_number WHERE group_id IN (SELECT group_id FROM groupmember WHERE user_number = ?) AND NOT phonenumber = ?")
+	checkErr(err)
+	defer stmtOut.Close()
+
+	phonenr := GetNumber(token)
+
+	rows, err := stmtOut.Query(phonenr, phonenr)
+	checkErr(err)
+
+	var contacts []*Contacts
+	for rows.Next() {
+		p := new(Contacts)
+		if err := rows.Scan(&p.Name, &p.Phonenumber); err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		contacts = append(contacts, p)
+	}
+	if err := rows.Err(); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	c.JSON(http.StatusAccepted, contacts)
 
 }
 

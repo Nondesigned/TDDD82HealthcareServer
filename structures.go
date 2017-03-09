@@ -32,3 +32,8 @@ type Pin struct {
 	Long string `json:"long"`
 	Lat  string `json:"lat"`
 }
+
+type Contacts struct {
+	Name string 		`json:"name`
+	Phonenumber string	`json:"phonenumber"` 
+}
