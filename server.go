@@ -142,9 +142,15 @@ func CheckContactList() string {
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
 
-	rows, err := db.Query("SELECT name, phonenumber FROM user")
+	stmtOut, err := db.Prepare("SELECT DISTINCT name, phonenumber FROM user INNER JOIN groupmember ON phonenumber = user_number WHERE group_id IN (SELECT group_id FROM groupmember WHERE user_number = ?) AND NOT phonenumber = ?")
 	checkErr(err)
-	defer rows.Close()
+	defer stmtOut.Close()
+
+	var phonenr int
+	phonenr = 111
+
+	rows, err := stmtOut.Query(phonenr, phonenr)
+	checkErr(err)
 
 	//Retrieves the tuples (Name, Phonenumber) and creates a JSON object with those N number of tuples where N is the number of rows in the mysql user table
 	columns, err := rows.Columns()
