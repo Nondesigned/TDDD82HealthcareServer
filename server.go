@@ -34,6 +34,7 @@ func main() {
 	{
 		auth.GET("/contacts", GetContactsHandler)
 		auth.GET("/pins", GetPinsHandler)
+		auth.GET("/groups", GetGroupsHandler)
 	}
 
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
@@ -327,6 +328,7 @@ func CreateUserHandler(c *gin.Context) {
 	}
 }
 
+//GetPinsHandler: Returns pins to the user
 func GetPinsHandler(c *gin.Context) {
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
@@ -352,4 +354,36 @@ func GetPinsHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 	c.JSON(http.StatusAccepted, pin)
+}
+
+//GetGroupsHandler : Returns the groups available to the user
+func GetGroupsHandler(c *gin.Context) {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+	token := c.Request.Header.Get("Token")
+	number := GetNumber(token)
+
+	rows, err := db.Query("SELECT DISTINCT(usergroup.id), usergroup.name FROM usergroup, groupmember WHERE groupmember.user_number=? AND groupmember.group_id = usergroup.id;", number)
+	defer rows.Close()
+
+	var groups []*Group
+	for rows.Next() {
+		p := new(Group)
+		if err := rows.Scan(&p.Id, &p.Name); err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		groups = append(groups, p)
+	}
+	if err := rows.Err(); err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	if groups != nil {
+		c.JSON(http.StatusAccepted, groups)
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"status": "No groups found"})
+	}
 }

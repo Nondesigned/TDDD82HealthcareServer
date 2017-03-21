@@ -37,3 +37,7 @@ type Contacts struct {
 	Name        string `json:"name"`
 	Phonenumber string `json:"phonenumber"`
 }
+type Group struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
