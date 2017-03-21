@@ -32,6 +32,17 @@ type Pin struct {
 	Long string `json:"long"`
 	Lat  string `json:"lat"`
 }
+type EditPin struct {
+	Id      string `json:"id"`
+	GroupId string `json:"groupid"`
+}
+
+type NewPin struct {
+	Type    string `json:"type"`
+	Long    string `json:"long"`
+	Lat     string `json:"lat"`
+	GroupId string `json:"groupid"`
+}
 
 type Contacts struct {
 	Name        string `json:"name"`

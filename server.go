@@ -34,6 +34,8 @@ func main() {
 	{
 		auth.GET("/contacts", GetContactsHandler)
 		auth.GET("/pins", GetPinsHandler)
+		auth.POST("/pins", CreatePinHandler)
+		auth.DELETE("/pins", DeletePinHandler)
 		auth.GET("/groups", GetGroupsHandler)
 	}
 
@@ -57,6 +59,7 @@ func AuthReq() gin.HandlerFunc {
 //ValidateUser : Validates user
 func ValidateUser(user Login) bool {
 	DBUser, DBPass, DBName := GetSettings()
+
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
@@ -132,6 +135,15 @@ func CreateToken(user Login) string {
 	b, _ := jwt.Serialize(rsaPrivate)
 	return string(b)
 
+}
+
+func HasGroup(number int, groupid string) bool {
+	for _, group := range GetGroups(number) {
+		if group.Id == groupid {
+			return true
+		}
+	}
+	return false
 }
 
 //ValidateToken : Validates Token
@@ -214,6 +226,32 @@ func InsertFCMToken(user Login) bool {
 	}
 	return true
 
+}
+
+func GetGroups(number int) []*Group {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+
+	rows, err := db.Query("SELECT DISTINCT(usergroup.id), usergroup.name FROM usergroup, groupmember WHERE groupmember.user_number=? AND groupmember.group_id = usergroup.id;", number)
+	defer rows.Close()
+
+	var groups []*Group
+	for rows.Next() {
+		p := new(Group)
+		if err := rows.Scan(&p.Id, &p.Name); err != nil {
+			return nil
+		}
+		groups = append(groups, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil
+	}
+
+	return groups
 }
 
 //GetPhoneNumber retrieves phonenumber for input NFC id
@@ -356,32 +394,69 @@ func GetPinsHandler(c *gin.Context) {
 	c.JSON(http.StatusAccepted, pin)
 }
 
-//GetGroupsHandler : Returns the groups available to the user
-func GetGroupsHandler(c *gin.Context) {
+//CreatePinHandler: Inset pin and returns id
+func CreatePinHandler(c *gin.Context) {
+	var newPin NewPin
+	err := c.BindJSON(&newPin)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
+	token := c.Request.Header.Get("Token")
+	number := GetNumber(token)
+	if HasGroup(number, newPin.GroupId) == false {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	rows, err := db.Query("INSERT INTO `healthcare`.`marking` (`group_id`, `type`, `creation_time`, `latitude`, `longitude`) VALUES (?, ?, NOW(), ?, ?);", newPin.GroupId, newPin.Type, newPin.Lat, newPin.Long)
+	defer rows.Close()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	c.JSON(http.StatusAccepted, gin.H{"status:": "ok"})
+}
 
+//GetGroupsHandler : Returns the groups available to the user
+func DeletePinHandler(c *gin.Context) {
+	var pin EditPin
+	err := c.BindJSON(&pin)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+	token := c.Request.Header.Get("Token")
+	number := GetNumber(token)
+	if HasGroup(number, pin.GroupId) == false {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	stat, err := db.Prepare("DELETE healthcare.marking.* FROM healthcare.marking WHERE marking.group_id = ? AND marking.id = ?;")
+	defer stat.Close()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	res, err := stat.Exec(pin.GroupId, pin.Id)
+	affected, _ := res.RowsAffected()
+	if err != nil || (affected < int64(1)) {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusAccepted, gin.H{"status:": "ok"})
+}
+
+//GetGroupsHandler : Returns the groups available to the user
+func GetGroupsHandler(c *gin.Context) {
 	token := c.Request.Header.Get("Token")
 	number := GetNumber(token)
 
-	rows, err := db.Query("SELECT DISTINCT(usergroup.id), usergroup.name FROM usergroup, groupmember WHERE groupmember.user_number=? AND groupmember.group_id = usergroup.id;", number)
-	defer rows.Close()
-
-	var groups []*Group
-	for rows.Next() {
-		p := new(Group)
-		if err := rows.Scan(&p.Id, &p.Name); err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
-		groups = append(groups, p)
-	}
-	if err := rows.Err(); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-	}
-	if groups != nil {
+	if groups := GetGroups(number); groups != nil {
 		c.JSON(http.StatusAccepted, groups)
 	} else {
 		c.JSON(http.StatusAccepted, gin.H{"status": "No groups found"})
