@@ -416,7 +416,7 @@ func CreatePinHandler(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
-	c.JSON(http.StatusAccepted, gin.H{"status:": "ok"})
+	c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
 }
 
 //GetGroupsHandler : Returns the groups available to the user
