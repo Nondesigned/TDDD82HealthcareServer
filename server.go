@@ -432,17 +432,13 @@ func DeletePinHandler(c *gin.Context) {
 	defer db.Close() //Close DB after function has returned a val
 	token := c.Request.Header.Get("Token")
 	number := GetNumber(token)
-	if HasGroup(number, pin.GroupId) == false {
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-	stat, err := db.Prepare("DELETE healthcare.marking.* FROM healthcare.marking WHERE marking.group_id = ? AND marking.id = ?;")
+	stat, err := db.Prepare("DELETE healthcare.marking.* FROM healthcare.marking,healthcare.groupmember WHERE marking.group_id = groupmember.group_id AND marking.id = ? AND groupmember.user_number = ?;")
 	defer stat.Close()
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	res, err := stat.Exec(pin.GroupId, pin.Id)
+	res, err := stat.Exec(pin.Id, number)
 	affected, _ := res.RowsAffected()
 	if err != nil || (affected < int64(1)) {
 		c.AbortWithStatus(http.StatusInternalServerError)
