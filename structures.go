@@ -28,6 +28,7 @@ type Create struct {
 }
 
 type Pin struct {
+	Id   string `json:"id"`
 	Type string `json:"type"`
 	Long string `json:"long"`
 	Lat  string `json:"lat"`

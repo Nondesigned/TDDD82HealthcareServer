@@ -377,13 +377,13 @@ func GetPinsHandler(c *gin.Context) {
 	token := c.Request.Header.Get("Token")
 
 	number := GetNumber(token)
-	rows, err := db.Query("SELECT healthcare.marking.type, healthcare.marking.longitude, healthcare.marking.latitude FROM healthcare.marking, healthcare.groupmember, healthcare.user where marking.group_id = groupmember.group_id and groupmember.user_number = user.phonenumber and user.phonenumber = ?;", number)
+	rows, err := db.Query("SELECT healthcare.marking.id,healthcare.marking.type, healthcare.marking.longitude, healthcare.marking.latitude FROM healthcare.marking, healthcare.groupmember, healthcare.user where marking.group_id = groupmember.group_id and groupmember.user_number = user.phonenumber and user.phonenumber = ?;", number)
 	defer rows.Close()
 
 	var pin []*Pin
 	for rows.Next() {
 		p := new(Pin)
-		if err := rows.Scan(&p.Type, &p.Long, &p.Lat); err != nil {
+		if err := rows.Scan(&p.Id, &p.Type, &p.Long, &p.Lat); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 		pin = append(pin, p)
@@ -448,7 +448,7 @@ func DeletePinHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
-	c.JSON(http.StatusAccepted, gin.H{"status:": "ok"})
+	c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
 }
 
 //GetGroupsHandler : Returns the groups available to the user
