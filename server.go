@@ -423,6 +423,8 @@ func CreatePinHandler(c *gin.Context) {
 func DeletePinHandler(c *gin.Context) {
 	var pin EditPin
 	err := c.BindJSON(&pin)
+	x, _ := ioutil.ReadAll(c.Request.Body)
+	fmt.Printf("%s", string(x))
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
