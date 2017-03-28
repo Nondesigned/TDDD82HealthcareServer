@@ -422,8 +422,6 @@ func CreatePinHandler(c *gin.Context) {
 //GetGroupsHandler : Returns the groups available to the user
 func DeletePinHandler(c *gin.Context) {
 	var pin EditPin
-	x, _ := ioutil.ReadAll(c.Request.Body)
-	fmt.Printf("%s", string(x))
 	err := c.BindJSON(&pin)
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
