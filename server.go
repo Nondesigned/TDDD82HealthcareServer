@@ -35,7 +35,7 @@ func main() {
 		auth.GET("/contacts", GetContactsHandler)
 		auth.GET("/pins", GetPinsHandler)
 		auth.POST("/pins", CreatePinHandler)
-		auth.DELETE("/pins", DeletePinHandler)
+		auth.POST("/deletepin", DeletePinHandler)
 		auth.GET("/groups", GetGroupsHandler)
 	}
 
