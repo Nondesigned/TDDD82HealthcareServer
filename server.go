@@ -366,7 +366,7 @@ func CreateUserHandler(c *gin.Context) {
 	}
 }
 
-//GetPinsHandler: Returns pins to the user
+//GetPinsHandler : Returns pins to the user
 func GetPinsHandler(c *gin.Context) {
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
@@ -394,7 +394,7 @@ func GetPinsHandler(c *gin.Context) {
 	c.JSON(http.StatusAccepted, pin)
 }
 
-//CreatePinHandler: Inset pin and returns id
+//CreatePinHandler : Inset pin and returns id
 func CreatePinHandler(c *gin.Context) {
 	var newPin NewPin
 	err := c.BindJSON(&newPin)
@@ -419,7 +419,7 @@ func CreatePinHandler(c *gin.Context) {
 	c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
 }
 
-//GetGroupsHandler : Returns the groups available to the user
+//DeletePinHandler : Delete pin
 func DeletePinHandler(c *gin.Context) {
 	var pin EditPin
 	err := c.BindJSON(&pin)
