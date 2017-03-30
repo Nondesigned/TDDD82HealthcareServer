@@ -70,7 +70,6 @@ func AdminReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cookie,_ := c.Request.Cookie("AdminToken")
 		token := cookie.String()
-		println(token)
 		if token == "AdminToken=admin" {
 			c.Next()
 		} else {
