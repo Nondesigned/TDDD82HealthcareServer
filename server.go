@@ -44,6 +44,10 @@ func main() {
 	{
 		admin.GET("/users", GetUsersHandler)
 		admin.GET("/contacts/:number", GetNumberContactsHandler)
+		admin.GET("/groups/:number", GetNumberGroupsHandler)
+		admin.DELETE("/groups/:source/:destination", DeleteFromGroupHandler)
+		admin.PUT("/groups/:source/:destination", PutUserInGroupHandler)
+		admin.GET("/ngroups/:number", GetNonMemberGroupsHandler)
 	}
 	r.Static("/site", "site/")
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
@@ -52,6 +56,7 @@ func main() {
 //AuthReq : Middleware for authentication
 func AuthReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		token := c.Request.Header.Get("Token")
 		println(token)
 		if ValidateToken(token) {
@@ -63,8 +68,10 @@ func AuthReq() gin.HandlerFunc {
 }
 func AdminReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		admintoken := c.Request.Header.Get("AdminToken")
-		if admintoken == "admin" {
+		cookie,_ := c.Request.Cookie("AdminToken")
+		token := cookie.String()
+		println(token)
+		if token == "AdminToken=admin" {
 			c.Next()
 		} else {
 			c.AbortWithStatus(http.StatusUnauthorized)
@@ -255,6 +262,32 @@ func GetGroups(number int) []*Group {
 	checkErr(err)
 
 	rows, err := db.Query("SELECT DISTINCT(usergroup.id), usergroup.name FROM usergroup, groupmember WHERE groupmember.user_number=? AND groupmember.group_id = usergroup.id;", number)
+	defer rows.Close()
+
+	var groups []*Group
+	for rows.Next() {
+		p := new(Group)
+		if err := rows.Scan(&p.Id, &p.Name); err != nil {
+			return nil
+		}
+		groups = append(groups, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil
+	}
+
+	return groups
+}
+
+func GetNonMemberGroups(number int) []*Group {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+
+	rows, err := db.Query("SELECT distinct(usergroup.id), usergroup.name FROM healthcare.usergroup WHERE usergroup.id NOT IN (SELECT usergroup.id FROM healthcare.usergroup, healthcare.groupmember WHERE usergroup.id = groupmember.group_id AND groupmember.user_number=?);", number)
 	defer rows.Close()
 
 	var groups []*Group
