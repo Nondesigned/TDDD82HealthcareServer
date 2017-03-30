@@ -83,7 +83,7 @@
                             <option>You have to choose a user first</option>
                         </select>
                 </div>
-                <button class="btn btn-primary" onclick="addToGroup($('#userSelector').val(),$('#groupSelector').val());">Add</button>
+                <button class="btn btn-primary pull-right" onclick="addToGroup($('#userSelector').val(),$('#groupSelector').val());">Add</button>
                 </div>
 
             <p>The user is a member of the following groups:</p>
@@ -203,8 +203,7 @@
         }
         
         function addToGroup(source, dest) {
-            if(parseInt($('#userSelector').val()) != NaN && parseInt($('#groupSelector').val()) != NaN){
-
+            if(!isNaN(parseInt($('#userSelector').val())) && !isNaN(parseInt($('#groupSelector').val()))){
                 $.ajax({
                     url: '/groups/' + source + '/' + dest,
                     type: 'PUT',
