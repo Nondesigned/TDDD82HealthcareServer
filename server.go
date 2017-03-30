@@ -24,6 +24,7 @@ const SaltSize = 16
 func main() {
 	r := gin.Default()
 	auth := r.Group("/")
+	admin := r.Group("/")
 	// Handlers
 	r.GET("/", DefaultHandler)
 	r.POST("/login", LoginHandler)
@@ -39,6 +40,12 @@ func main() {
 		auth.GET("/groups", GetGroupsHandler)
 	}
 
+	admin.Use(AdminReq())
+	{
+		admin.GET("/users", GetUsersHandler)
+		admin.GET("/contacts/:number", GetNumberContactsHandler)
+	}
+	r.Static("/site", "site/")
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
 }
 
@@ -46,7 +53,18 @@ func main() {
 func AuthReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Request.Header.Get("Token")
+		println(token)
 		if ValidateToken(token) {
+			c.Next()
+		} else {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
+}
+func AdminReq() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		admintoken := c.Request.Header.Get("AdminToken")
+		if admintoken == "admin" {
 			c.Next()
 		} else {
 			c.AbortWithStatus(http.StatusUnauthorized)

@@ -1,5 +1,11 @@
 package main
 
+type User struct {
+	Name   string `json:"name"`
+	Card   string `json:"card"`
+	Number string `json:"number"`
+}
+
 //Login user structure
 type Login struct {
 	Card     int    `json:"card" binding:"required"`
