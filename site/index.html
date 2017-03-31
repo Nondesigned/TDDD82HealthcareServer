@@ -20,16 +20,26 @@
     <![endif]-->
 </head>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-<script>
-    $.ajaxSetup({
-        headers: {
-            'Token': 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJtb2JpbGUiLCJleHAiOjE1MjE2MjI4OTksImlhdCI6MTQ5MDA4Njg5OSwiaXNzIjoiU2p1a3bDpXJkc2dydXBwZW4iLCJzdWIiOiI1NTUifQ.IdsTVSAhUdl_Tl-UavQIyZwvQL1OORn3J9VlXR2GUNPkktNck8wjBY8NhNiRub6eW5qTgelU6p_HeUjHXH73o55UjQE9iB4auq-lnzj4uLWfX19oKVDHtAn4QKNjc_VTFENTXajwQtJMj9-vdHq4qteWivt-rX4xkiqZ2lL7obWgmLV1QU58S7r1bVV9F4Ah8xuyAvZnoQ64Sx23AKrXID5XOJJ-qhGajf13gpeRF3NA8rY5mX7oDQG7uY2INOGe9Wn8MR_0u6Elw4awtjntyEhAs_7oT8sFCeGHnXwE7UwiGJ6NI4ybAJdr9kU7WClqolxz5_PVWBdgZ_NT57cPo7s1_evvepSKe2K21p5Egq_Yz5Hbf5V6Tq1S9tdFtC9iaDQ7auB9pva71_XviBaXLQtja6ybw24WuVUhNc_Cj3tLLqn1z2Uc8lW0KQc3hgwIZp9khPJbKGmvXU9NCVfrW6PYmMkLRBIxlc9GD7ybiUI_vwttHdydJZCMQSoPfzNFYFUbKE9OpmkfuXf3ltzfOOi9Z815tXIQB0hUzYZnvp0gehoxfGcmUCnZgpRRL33xzkhb_rPR6h0_rsEgiuPc11oj9ww78F5njzjmokEqlzm23x_0T4XAbI1hmTWwDBHGw7L_MFau-R88Xw4a4BF4pGZF_OeNat2J_Joh9GHmYxc',
-            'AdminToken': 'admin'
-        }
-    });
-</script>
 
 <body>
+    <div class="overlay" id="overlay">
+        <div class="container top">
+            <div class="row">
+                <div class="panel panel-default col-md-4 col-md-push-4">
+                    <div class="panel-body ">
+                        <form class="form-horizontal" action="#">
+                            <div class="form-group">
+                                <label for="secretInput" class="control-label">Password </label>
+                                <input type="password" class="form-control" id="secretInput" placeholder="Secret">
+                                <br>
+                                <button class="btn btn-primary pull-right" onclick="login();">Login</button>
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <nav class="navbar navbar-inverse  navbar-static-top">
         <div class="container-fluid">
             <!-- Brand and toggle get grouped for better mobile display -->
@@ -42,16 +52,13 @@
         <!-- /.container-fluid -->
     </nav>
     <div class="container">
-
         <div class="col-md-3" style="    border-right: 1px solid lightgray;">
             <h3><i class="glyphicon glyphicon-user"></i> Users</h3>
             <div class="form-group">
-                <label for="userSelector">Name</label>
+                <label for="userSelector">Phone number</label>
                 <select class="form-control" id="userSelector">
                 </select>
             </div>
-
-
             <table class="table table-bordered">
                 <thead>
                     <tr>
@@ -61,189 +68,49 @@
                     </tr>
                 </thead>
                 <tbody id="users">
-
                 </tbody>
             </table>
-            <div id="alerts" >
-
+            <div id="alerts">
             </div>
         </div>
-        <div class="col-md-4">
-            <h4><i class="glyphicon glyphicon-th-list"></i> Contacts</h4>
-            <p>The user has the following users in his/her contact list:</p>
-            <ul id="contacts" class="list-group">
-            </ul>
-        </div>
-        <div class="col-md-4">
-            <h4><i class="glyphicon glyphicon-th-large"></i> Groups</h4>
-                <label for="groupSelector">Name</label>
-                <div class="row">
-                <div class="col-md-10">
-                    <select class="form-control" id="groupSelector" disabled="disabled">
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4><i class="glyphicon glyphicon-th-list"></i> Contacts</h4>
+                    <p>The user has the following users in his/her contact list:</p>
+                    <ul id="contacts" class="list-group">
+                    </ul>
+                </div>
+                <div class="col-md-6 panels">
+                    <h4><i class="glyphicon glyphicon-th-large"></i> Groups</h4>
+                    <label for="groupSelector">Name</label>
+                    <div class="row">
+                        <div class="col-md-10">
+                            <select class="form-control" id="groupSelector" disabled="disabled">
                             <option>You have to choose a user first</option>
                         </select>
-                </div>
-                <button class="btn btn-primary pull-right" onclick="addToGroup($('#userSelector').val(),$('#groupSelector').val());">Add</button>
-                </div>
+                        </div>
+                        <button class="btn btn-primary pull-right" onclick="addToGroup($('#userSelector').val(),$('#groupSelector').val());">Add</button>
+                    </div>
 
-            <p>The user is a member of the following groups:</p>
-            <ul id="groups" class="list-group">
+                    <p>The user is a member of the following groups:</p>
+                    <ul id="groups" class="list-group">
 
-            </ul>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <h3><i class="glyphicon glyphicon-map-marker"></i> Map</h3>
+                <div id="map"></div>
+            </div>
         </div>
     </div>
 
-    <script>
-        $("#userSelector").change(function () {
-            if ($('#userSelector').val() == "Choose a user") {
-                return;
-            }
-            loadContent();
-        });
-
-        getUsers();
-
-        function loadContent() {
-            getContacts($('#userSelector').val());
-            getGroups($('#userSelector').val());
-            getNonMemberGroups($('#userSelector').val());
-        }
-
-        function getContacts(number) {
-            $.getJSON("/contacts/" + number, function (contacts) {
-                document.getElementById("contacts").innerHTML = "";
-                for (var i in contacts) {
-                    var entry = document.createElement('li');
-                    var span = document.createElement('span');
-                    entry.className = "list-group-item";
-                    span.className = "badge";
-                    span.appendChild(document.createTextNode(contacts[i].phonenumber));
-                    entry.appendChild(document.createTextNode(contacts[i].name));
-                    entry.appendChild(span);
-                    document.getElementById("contacts").appendChild(entry);
-                }
-                if (contacts == null) {
-                    document.getElementById("contacts").innerHTML =
-                        '<p class="text-primary">User got no contacts</div>';
-                }
-            });
-        }
-
-        function getGroups(number) {
-            $.getJSON("/groups/" + number, function (groups) {
-                document.getElementById("groups").innerHTML = "";
-                for (var i in groups)(function (i) {
-                    var entry = document.createElement('li');
-                    var span = document.createElement('span');
-                    var btn = document.createElement('button');
-
-                    //Delete-knapp
-                    btn.className = "btn btn-circle btn-danger btn-xs pull-right";
-                    btn.onclick = function () {
-                        if (confirm('Are you sure you want to delete ' + $('#userSelector').val() +
-                                ' from ' + groups[i].name + '?')) {
-                            removeGroup($('#userSelector').val(), groups[i].id);
-                        } else {}
-                    }
-                    btn.innerHTML =
-                        '<span class="glyphicon glyphicon-ban-circle" aria-hidden="true"></span>';
-
-                    //Grupp-id
-                    span.className = "badge";
-                    span.appendChild(document.createTextNode(groups[i].id));
-                    //Hantera raden i listan
-                    entry.className = "list-group-item";
-                    entry.appendChild(document.createTextNode(groups[i].name));
-                    entry.appendChild(btn);
-                    entry.appendChild(span);
-                    document.getElementById("groups").appendChild(entry);
-                })(i);
-                if (groups == null) {
-                    document.getElementById("groups").innerHTML =
-                        '<p class="text-primary">User is not member of any group</div>';
-                }
-            });
-        }
-
-        function getUsers() {
-            $.getJSON("/users", function (users) {
-                document.getElementById("users").innerHTML = "";
-                document.getElementById("userSelector").innerHTML = "<option>Choose a user</option>";
-                for (var i in users) {
-                    //Create table
-                    var row = document.createElement('tr');
-                    var nameTD = document.createElement('td');
-                    var numberTD = document.createElement('td');
-                    var cardTD = document.createElement('td');
-                    nameTD.appendChild(document.createTextNode(users[i].name));
-                    numberTD.appendChild(document.createTextNode(users[i].number));
-                    cardTD.appendChild(document.createTextNode(users[i].card));
-                    row.appendChild(nameTD);
-                    row.appendChild(numberTD);
-                    row.appendChild(cardTD);
-                    document.getElementById("users").appendChild(row);
-                    //Add to userSelector
-                    var option = document.createElement("option");
-                    option.value = users[i].number;
-                    option.text = users[i].number;
-                    document.getElementById("userSelector").appendChild(option);
-                }
-            });
-        }
-
-        function removeGroup(source, dest) {
-            $.ajax({
-                url: '/groups/' + source + '/' + dest,
-                type: 'DELETE',
-                success: function (result) {
-                    displayAlert(source + " has been removed from group");
-                    loadContent();
-                }
-            });
-        }
-        
-        function addToGroup(source, dest) {
-            if(!isNaN(parseInt($('#userSelector').val())) && !isNaN(parseInt($('#groupSelector').val()))){
-                $.ajax({
-                    url: '/groups/' + source + '/' + dest,
-                    type: 'PUT',
-                    success: function (result) {
-                        displayAlert(source + " has been added to group");
-                        loadContent();
-                    }
-                });
-            }
-        }
-
-        function getNonMemberGroups(number) {
-            $.getJSON("/ngroups/" + number, function (groups) {
-                $('#groupSelector').removeAttr('disabled');
-                document.getElementById("groupSelector").innerHTML = "<option>Choose a group</option>";
-                for (var i in groups)(function (i) {
-                    var option = document.createElement('option');
-                    option.value = groups[i].id;
-                    option.text = groups[i].name;
-                    document.getElementById("groupSelector").appendChild(option);
-                })(i);
-                if (groups == null) {
-                    document.getElementById("groupSelector").innerHTML =
-                        "<option>User is member of all groups</option>";
-                    $('#groupSelector').attr('disabled', 'disabled');
-                }
-            });
-        }
-
-        function displayAlert(message){
-            var alertElement = document.createElement("div")
-            alertElement.className = "alert alert-dismissible alert-success";
-            alertElement.innerHTML = '<button type="button" class="close" data-dismiss="alert">&times;</button>'+message;
-            document.getElementById("alerts").appendChild(alertElement);
-        }
-    </script>
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <!-- Include all compiled plugins (below), or include individual files as needed -->
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
-        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="script.js"></script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCMoApWNRht9xdIdkf6Rd60bWkTsCuRoik&callback=getPins"></script>
 </body>
 
 </html>

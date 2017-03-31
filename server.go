@@ -48,6 +48,7 @@ func main() {
 		admin.DELETE("/groups/:source/:destination", DeleteFromGroupHandler)
 		admin.PUT("/groups/:source/:destination", PutUserInGroupHandler)
 		admin.GET("/ngroups/:number", GetNonMemberGroupsHandler)
+		admin.GET("/pins/:number",GetAdminPinsHandler)
 	}
 	r.Static("/site", "site/")
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
@@ -70,7 +71,7 @@ func AdminReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		cookie,_ := c.Request.Cookie("AdminToken")
 		token := cookie.String()
-		if token == "AdminToken=admin" {
+		if token == "AdminToken=adminkaffekaka" {
 			c.Next()
 		} else {
 			c.AbortWithStatus(http.StatusUnauthorized)

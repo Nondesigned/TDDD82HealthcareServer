@@ -7,3 +7,23 @@
   line-height: 1;
   border-radius: 10px;
 }
+.overlay{
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background: white;
+  position: absolute;
+}
+.hidden{
+    visibility: hidden;
+}
+.top{
+  margin-top: 10em;
+}
+#map {
+height: 400px;
+width: 100%;
+}
+.panels{
+  min-height: 30em;
+}
