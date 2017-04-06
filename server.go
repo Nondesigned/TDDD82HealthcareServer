@@ -48,7 +48,7 @@ func main() {
 		admin.DELETE("/groups/:source/:destination", DeleteFromGroupHandler)
 		admin.PUT("/groups/:source/:destination", PutUserInGroupHandler)
 		admin.GET("/ngroups/:number", GetNonMemberGroupsHandler)
-		admin.GET("/pins/:number",GetAdminPinsHandler)
+		admin.GET("/pins/:number", GetAdminPinsHandler)
 	}
 	r.Static("/site", "site/")
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
@@ -68,7 +68,7 @@ func AuthReq() gin.HandlerFunc {
 }
 func AdminReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		cookie,_ := c.Request.Cookie("AdminToken")
+		cookie, _ := c.Request.Cookie("AdminToken")
 		token := cookie.String()
 		if token == "AdminToken=adminkaffekaka" {
 			c.Next()
@@ -232,7 +232,6 @@ func Hash(secret string, salt string) string {
 
 //InsertFCMToken insert unique fcmtoken for each client into the mysql database on login
 func InsertFCMToken(user Login) bool {
-
 	phonenr := GetPhoneNumberForToken(user.Card)
 
 	DBUser, DBPass, DBName := GetSettings()
@@ -374,7 +373,9 @@ func GetContactsHandler(c *gin.Context) {
 		contacts = append(contacts, p)
 	}
 	if err := rows.Err(); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		var a []int
+		c.JSON(http.StatusAccepted, a)
 	}
 	c.JSON(http.StatusAccepted, contacts)
 
