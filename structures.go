@@ -59,3 +59,7 @@ type Group struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 }
+type Data struct {
+	ID    int `json:"id"`
+	Value int `json:"value"`
+}
