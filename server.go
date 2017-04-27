@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -16,6 +15,7 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	"golang.org/x/crypto/sha3"
 )
 
 //SaltSize sets length of salt
@@ -323,14 +323,10 @@ func GetPhoneNumberForToken(card int) int {
 
 //SHA3 Converts input to SHA3 hash
 func SHA3(str string) []byte {
-
-	bytes := []byte(str)
-
-	h := sha256.New()  // new sha256 object
-	h.Write(bytes)     // data is now converted to hex
-	code := h.Sum(nil) // code is now the hex sum
-
-	return code
+	buf := []byte(str)
+	h := make([]byte, 256)
+	sha3.ShakeSum256(h, buf)
+	return h
 }
 
 func checkErr(err error) {
