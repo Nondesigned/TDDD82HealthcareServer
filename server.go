@@ -324,7 +324,7 @@ func GetPhoneNumberForToken(card int) int {
 //SHA3 Converts input to SHA3 hash
 func SHA3(str string) []byte {
 	buf := []byte(str)
-	h := make([]byte, 256)
+	h := make([]byte, 64)
 	sha3.ShakeSum256(h, buf)
 	return h
 }
