@@ -59,10 +59,3 @@ type Group struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 }
-<<<<<<< HEAD
-type Data struct {
-	ID    int `json:"id"`
-	Value int `json:"value"`
-}
-=======
->>>>>>> c94a73fe45865a237987f10761f26dabef050263

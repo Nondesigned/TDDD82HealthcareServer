@@ -15,7 +15,7 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	_ "golang.org/x/crypto/sha3"
+	"golang.org/x/crypto/sha3"
 )
 
 //SaltSize sets length of salt
@@ -24,13 +24,11 @@ const SaltSize = 16
 func main() {
 	r := gin.Default()
 	auth := r.Group("/")
+	admin := r.Group("/")
 	// Handlers
 	r.GET("/", DefaultHandler)
 	r.POST("/login", LoginHandler)
 	r.POST("/create", CreateUserHandler)
-	// For Rickard and Oscar
-	r.POST("/read", ReadHandler)
-	r.POST("/write", WriteHandler)
 
 	//Handlers that requires authentication
 	auth.Use(AuthReq())
@@ -42,6 +40,16 @@ func main() {
 		auth.GET("/groups", GetGroupsHandler)
 	}
 
+	admin.Use(AdminReq())
+	{
+		admin.GET("/users", GetUsersHandler)
+		admin.GET("/contacts/:number", GetNumberContactsHandler)
+		admin.GET("/groups/:number", GetNumberGroupsHandler)
+		admin.DELETE("/groups/:source/:destination", DeleteFromGroupHandler)
+		admin.PUT("/groups/:source/:destination", PutUserInGroupHandler)
+		admin.GET("/ngroups/:number", GetNonMemberGroupsHandler)
+		admin.GET("/pins/:number", GetAdminPinsHandler)
+	}
 	r.Static("/site", "site/")
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
 }
@@ -315,7 +323,6 @@ func GetPhoneNumberForToken(card int) int {
 
 //SHA3 Converts input to SHA3 hash
 func SHA3(str string) []byte {
-
 	buf := []byte(str)
 	h := make([]byte, 256)
 	sha3.ShakeSum256(h, buf)
@@ -497,68 +504,4 @@ func GetGroupsHandler(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusAccepted, gin.H{"status": "No groups found"})
 	}
-}
-
-//Functions and handlers for Rickard and Oskar
-
-//CreateReadHandler : Handler for reads
-func Read(data Data) int {
-	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
-	checkErr(err)
-	defer db.Close() //Close DB after function has returned a val
-
-	checkErr(err)
-
-	stmtOut, err := db.Prepare("SELECT value FROM test Where id=?")
-	defer stmtOut.Close()
-
-	var value int
-
-	err = stmtOut.QueryRow(data.ID).Scan(&value)
-
-	return value
-}
-
-//Insert int value into test
-func Write(data Data) bool {
-
-	DBUser, DBPass, DBName := GetSettings()
-	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
-	checkErr(err)
-	defer db.Close() //Close DB after function has returned a val
-
-	stmtOut, err := db.Prepare("REPLACE INTO test (id, value) VALUES (?, ?)")
-	checkErr(err)
-	defer stmtOut.Close()
-
-	_, err = stmtOut.Exec(data.ID, data.Value)
-	if err != nil {
-		return false
-	}
-	return true
-
-}
-
-//WriteHandler : Returns ok if write was succesful
-func WriteHandler(c *gin.Context) {
-	var data Data
-	err := c.BindJSON(&data)
-	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
-	}
-	if Write(data) == true {
-		c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
-	} else {
-		c.JSON(http.StatusAccepted, gin.H{"status": "Could not insert"})
-	}
-}
-
-//ReadHandler : Returns value
-func ReadHandler(c *gin.Context) {
-	var data Data
-	err := c.BindJSON(&data)
-	if err != nil {
-	}
-	c.JSON(http.StatusAccepted, gin.H{"value": Read(data)})
 }
