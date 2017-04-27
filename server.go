@@ -317,15 +317,9 @@ func GetPhoneNumberForToken(card int) int {
 func SHA3(str string) []byte {
 
 	buf := []byte(str)
-	// A hash needs to be 64 bytes long to have 256-bit collision resistance.
-	h := make([]byte, 64)
-	// Compute a 64-byte hash of buf and put it in h.
-	d := ShakeSum256(h, buf)
-
-	h.Write(buf)       // data is now converted to hex
-	code := h.Sum(nil) // code is now the hex sum
-
-	return code
+	h := make([]byte, 256)
+	sha3.ShakeSum256(h, buf)
+	return h
 }
 
 func checkErr(err error) {

@@ -29,6 +29,24 @@ Example of input for /login:
 	"fcmtoken":"rndtokenstring"
 }
 ```
+#Pins
+
+##Add pin
+```json
+{
+	"groupid": "1",
+	"long": "58.407256",
+	"lat":"15.578668",
+	"type":"wounded_guy"
+}
+```
+##Delete pin
+```json
+{
+	"id":"31",
+	"groupid": "1"
+}
+```
 ##How to create a user
 Make a POST to someaddress:port/create with a JSON object according to the format in `structures.go` 
 
