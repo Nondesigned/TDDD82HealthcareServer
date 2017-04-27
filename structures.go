@@ -1,5 +1,11 @@
 package main
 
+type User struct {
+	Name   string `json:"name"`
+	Card   string `json:"card"`
+	Number string `json:"number"`
+}
+
 //Login user structure
 type Login struct {
 	Card     int    `json:"card" binding:"required"`
@@ -28,12 +34,32 @@ type Create struct {
 }
 
 type Pin struct {
+	Id   string `json:"id"`
 	Type string `json:"type"`
 	Long string `json:"long"`
 	Lat  string `json:"lat"`
+}
+type EditPin struct {
+	Id      string `json:"id"`
+	GroupId string `json:"groupid"`
+}
+
+type NewPin struct {
+	Type    string `json:"type"`
+	Long    string `json:"long"`
+	Lat     string `json:"lat"`
+	GroupId string `json:"groupid"`
 }
 
 type Contacts struct {
 	Name        string `json:"name"`
 	Phonenumber string `json:"phonenumber"`
+}
+type Group struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+type Data struct {
+	ID    int `json:"id"`
+	Value int `json:"value"`
 }

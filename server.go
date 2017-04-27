@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
 	"encoding/json"
@@ -16,6 +15,7 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	_ "golang.org/x/crypto/sha3"
 )
 
 //SaltSize sets length of salt
@@ -28,22 +28,41 @@ func main() {
 	r.GET("/", DefaultHandler)
 	r.POST("/login", LoginHandler)
 	r.POST("/create", CreateUserHandler)
+	// For Rickard and Oscar
+	r.POST("/read", ReadHandler)
+	r.POST("/write", WriteHandler)
 
 	//Handlers that requires authentication
 	auth.Use(AuthReq())
 	{
 		auth.GET("/contacts", GetContactsHandler)
 		auth.GET("/pins", GetPinsHandler)
+		auth.POST("/pins", CreatePinHandler)
+		auth.POST("/deletepin", DeletePinHandler)
+		auth.GET("/groups", GetGroupsHandler)
 	}
 
+	r.Static("/site", "site/")
 	r.RunTLS(":8080", "cert.pem", "key.unencrypted.pem")
 }
 
 //AuthReq : Middleware for authentication
 func AuthReq() gin.HandlerFunc {
 	return func(c *gin.Context) {
+
 		token := c.Request.Header.Get("Token")
 		if ValidateToken(token) {
+			c.Next()
+		} else {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
+}
+func AdminReq() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		cookie, _ := c.Request.Cookie("AdminToken")
+		token := cookie.String()
+		if token == "AdminToken=adminkaffekaka" {
 			c.Next()
 		} else {
 			c.AbortWithStatus(http.StatusUnauthorized)
@@ -56,6 +75,7 @@ func AuthReq() gin.HandlerFunc {
 //ValidateUser : Validates user
 func ValidateUser(user Login) bool {
 	DBUser, DBPass, DBName := GetSettings()
+
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
 	checkErr(err)
 	defer db.Close() //Close DB after function has returned a val
@@ -133,6 +153,15 @@ func CreateToken(user Login) string {
 
 }
 
+func HasGroup(number int, groupid string) bool {
+	for _, group := range GetGroups(number) {
+		if group.Id == groupid {
+			return true
+		}
+	}
+	return false
+}
+
 //ValidateToken : Validates Token
 func ValidateToken(token string) bool {
 	j, err := jws.ParseJWT([]byte(token))
@@ -195,7 +224,6 @@ func Hash(secret string, salt string) string {
 
 //InsertFCMToken insert unique fcmtoken for each client into the mysql database on login
 func InsertFCMToken(user Login) bool {
-
 	phonenr := GetPhoneNumberForToken(user.Card)
 
 	DBUser, DBPass, DBName := GetSettings()
@@ -213,6 +241,58 @@ func InsertFCMToken(user Login) bool {
 	}
 	return true
 
+}
+
+func GetGroups(number int) []*Group {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+
+	rows, err := db.Query("SELECT DISTINCT(usergroup.id), usergroup.name FROM usergroup, groupmember WHERE groupmember.user_number=? AND groupmember.group_id = usergroup.id;", number)
+	defer rows.Close()
+
+	var groups []*Group
+	for rows.Next() {
+		p := new(Group)
+		if err := rows.Scan(&p.Id, &p.Name); err != nil {
+			return nil
+		}
+		groups = append(groups, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil
+	}
+
+	return groups
+}
+
+func GetNonMemberGroups(number int) []*Group {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+
+	rows, err := db.Query("SELECT distinct(usergroup.id), usergroup.name FROM healthcare.usergroup WHERE usergroup.id NOT IN (SELECT usergroup.id FROM healthcare.usergroup, healthcare.groupmember WHERE usergroup.id = groupmember.group_id AND groupmember.user_number=?);", number)
+	defer rows.Close()
+
+	var groups []*Group
+	for rows.Next() {
+		p := new(Group)
+		if err := rows.Scan(&p.Id, &p.Name); err != nil {
+			return nil
+		}
+		groups = append(groups, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil
+	}
+
+	return groups
 }
 
 //GetPhoneNumber retrieves phonenumber for input NFC id
@@ -236,10 +316,13 @@ func GetPhoneNumberForToken(card int) int {
 //SHA3 Converts input to SHA3 hash
 func SHA3(str string) []byte {
 
-	bytes := []byte(str)
+	buf := []byte(str)
+	// A hash needs to be 64 bytes long to have 256-bit collision resistance.
+	h := make([]byte, 64)
+	// Compute a 64-byte hash of buf and put it in h.
+	d := ShakeSum256(h, buf)
 
-	h := sha256.New()  // new sha256 object
-	h.Write(bytes)     // data is now converted to hex
+	h.Write(buf)       // data is now converted to hex
 	code := h.Sum(nil) // code is now the hex sum
 
 	return code
@@ -285,7 +368,9 @@ func GetContactsHandler(c *gin.Context) {
 		contacts = append(contacts, p)
 	}
 	if err := rows.Err(); err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+		//c.AbortWithStatus(http.StatusInternalServerError)
+		var a []int
+		c.JSON(http.StatusAccepted, a)
 	}
 	c.JSON(http.StatusAccepted, contacts)
 
@@ -327,6 +412,7 @@ func CreateUserHandler(c *gin.Context) {
 	}
 }
 
+//GetPinsHandler : Returns pins to the user
 func GetPinsHandler(c *gin.Context) {
 	DBUser, DBPass, DBName := GetSettings()
 	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
@@ -337,13 +423,13 @@ func GetPinsHandler(c *gin.Context) {
 	token := c.Request.Header.Get("Token")
 
 	number := GetNumber(token)
-	rows, err := db.Query("SELECT healthcare.marking.type, healthcare.marking.longitude, healthcare.marking.latitude FROM healthcare.marking, healthcare.groupmember, healthcare.user where marking.group_id = groupmember.group_id and groupmember.user_number = user.phonenumber and user.phonenumber = ?;", number)
+	rows, err := db.Query("SELECT healthcare.marking.id,healthcare.marking.type, healthcare.marking.longitude, healthcare.marking.latitude FROM healthcare.marking, healthcare.groupmember, healthcare.user where marking.group_id = groupmember.group_id and groupmember.user_number = user.phonenumber and user.phonenumber = ?;", number)
 	defer rows.Close()
 
 	var pin []*Pin
 	for rows.Next() {
 		p := new(Pin)
-		if err := rows.Scan(&p.Type, &p.Long, &p.Lat); err != nil {
+		if err := rows.Scan(&p.Id, &p.Type, &p.Long, &p.Lat); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 		}
 		pin = append(pin, p)
@@ -352,4 +438,133 @@ func GetPinsHandler(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 	c.JSON(http.StatusAccepted, pin)
+}
+
+//CreatePinHandler : Inset pin and returns id
+func CreatePinHandler(c *gin.Context) {
+	var newPin NewPin
+	err := c.BindJSON(&newPin)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+	token := c.Request.Header.Get("Token")
+	number := GetNumber(token)
+	if HasGroup(number, newPin.GroupId) == false {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
+	rows, err := db.Query("INSERT INTO `healthcare`.`marking` (`group_id`, `type`, `creation_time`, `latitude`, `longitude`) VALUES (?, ?, NOW(), ?, ?);", newPin.GroupId, newPin.Type, newPin.Lat, newPin.Long)
+	defer rows.Close()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
+}
+
+//DeletePinHandler : Delete pin
+func DeletePinHandler(c *gin.Context) {
+	var pin EditPin
+	err := c.BindJSON(&pin)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+	token := c.Request.Header.Get("Token")
+	number := GetNumber(token)
+	stat, err := db.Prepare("DELETE healthcare.marking.* FROM healthcare.marking,healthcare.groupmember WHERE marking.group_id = groupmember.group_id AND marking.id = ? AND groupmember.user_number = ?;")
+	defer stat.Close()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	res, err := stat.Exec(pin.Id, number)
+	affected, _ := res.RowsAffected()
+	if err != nil || (affected < int64(1)) {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+	c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
+}
+
+//GetGroupsHandler : Returns the groups available to the user
+func GetGroupsHandler(c *gin.Context) {
+	token := c.Request.Header.Get("Token")
+	number := GetNumber(token)
+
+	if groups := GetGroups(number); groups != nil {
+		c.JSON(http.StatusAccepted, groups)
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"status": "No groups found"})
+	}
+}
+
+//Functions and handlers for Rickard and Oskar
+
+//CreateReadHandler : Handler for reads
+func Read(data Data) int {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+
+	stmtOut, err := db.Prepare("SELECT value FROM test Where id=?")
+	defer stmtOut.Close()
+
+	var value int
+
+	err = stmtOut.QueryRow(data.ID).Scan(&value)
+
+	return value
+}
+
+//Insert int value into test
+func Write(data Data) bool {
+
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	stmtOut, err := db.Prepare("REPLACE INTO test (id, value) VALUES (?, ?)")
+	checkErr(err)
+	defer stmtOut.Close()
+
+	_, err = stmtOut.Exec(data.ID, data.Value)
+	if err != nil {
+		return false
+	}
+	return true
+
+}
+
+//WriteHandler : Returns ok if write was succesful
+func WriteHandler(c *gin.Context) {
+	var data Data
+	err := c.BindJSON(&data)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	if Write(data) == true {
+		c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"status": "Could not insert"})
+	}
+}
+
+//ReadHandler : Returns value
+func ReadHandler(c *gin.Context) {
+	var data Data
+	err := c.BindJSON(&data)
+	if err != nil {
+	}
+	c.JSON(http.StatusAccepted, gin.H{"value": Read(data)})
 }
