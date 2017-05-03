@@ -29,6 +29,9 @@ func main() {
 	r.GET("/", DefaultHandler)
 	r.POST("/login", LoginHandler)
 	r.POST("/create", CreateUserHandler)
+		// For Rickard and Oscar
+	r.POST("/read", ReadHandler)
+	r.POST("/write", WriteHandler)
 
 	//Handlers that requires authentication
 	auth.Use(AuthReq())
@@ -504,4 +507,67 @@ func GetGroupsHandler(c *gin.Context) {
 	} else {
 		c.JSON(http.StatusAccepted, gin.H{"status": "No groups found"})
 	}
+}
+//Functions and handlers for Rickard and Oskar
+
+//CreateReadHandler : Handler for reads
+func Read(data Data) int {
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	checkErr(err)
+
+	stmtOut, err := db.Prepare("SELECT value FROM test Where id=?")
+	defer stmtOut.Close()
+
+	var value int
+
+	err = stmtOut.QueryRow(data.ID).Scan(&value)
+
+	return value
+}
+
+//Insert int value into test
+func Write(data Data) bool {
+
+	DBUser, DBPass, DBName := GetSettings()
+	db, err := sql.Open("mysql", DBUser+":"+DBPass+DBName)
+	checkErr(err)
+	defer db.Close() //Close DB after function has returned a val
+
+	stmtOut, err := db.Prepare("REPLACE INTO test (id, value) VALUES (?, ?)")
+	checkErr(err)
+	defer stmtOut.Close()
+
+	_, err = stmtOut.Exec(data.ID, data.Value)
+	if err != nil {
+		return false
+	}
+	return true
+
+}
+
+//WriteHandler : Returns ok if write was succesful
+func WriteHandler(c *gin.Context) {
+	var data Data
+	err := c.BindJSON(&data)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	if Write(data) == true {
+		c.JSON(http.StatusAccepted, gin.H{"status": "ok"})
+	} else {
+		c.JSON(http.StatusAccepted, gin.H{"status": "Could not insert"})
+	}
+}
+
+//ReadHandler : Returns value
+func ReadHandler(c *gin.Context) {
+	var data Data
+	err := c.BindJSON(&data)
+	if err != nil {
+	}
+	c.JSON(http.StatusAccepted, gin.H{"value": Read(data)})
 }
